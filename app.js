@@ -12,7 +12,6 @@ const express = require('express');
 // Handles the handlebars
 // https://www.npmjs.com/package/hbs
 const hbs = require('hbs');
-
 const app = express();
 
 // ℹ️ This function is getting exported from the config folder. It runs most middlewares
@@ -24,9 +23,33 @@ const capitalized = (string) => string[0].toUpperCase() + string.slice(1).toLowe
 
 app.locals.title = `${capitalized(projectName)}- Generated with IronGenerator`;
 
+
+//before the routes are difined set up connect-mongo
+const session = require('express-session');
+const MongoStore = require('connect-mongo')(session);
+const mongoose = require('mongoose')
+
+app.use(session({
+    secret: 'putAnythingHere',
+    saveUninitialized: false, // don't create session until something stored
+    resave: false, //don't save session if unmodified
+    cookie: {
+      maxAge: 1000*60*60*24//is in milliseconds
+    },
+    store: new MongoStore({
+         mongooseConnection: mongoose.connection,
+         ttl: 60*60*24, // is in seconds, expiring in 1 day
+    })
+}));
+
+
 // 👇 Start handling routes here
 const index = require('./routes/index');
 app.use('/', index);
+
+//link your auth here
+const authRoutes = require('./routes/auth.routes');
+app.use('/', authRoutes)
 
 // ❗ To handle errors. Routes that don't exist or errors that you handle in specific routes
 require('./error-handling')(app);
